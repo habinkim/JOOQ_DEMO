@@ -1,0 +1,3 @@
+rootProject.name = 'sakila'
+include 'configuration'
+

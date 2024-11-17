@@ -1,0 +1,152 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.asciidoctor.jvm.convert' version '3.3.2'
+    id "nu.studer.jooq" version '9.0'
+}
+
+
+ext {
+    set('snippetsDir', file("build/generated-snippets"))
+    set('generated', file("src/main/generated"))
+    mapstructVersion = '1.6.3'
+    jooqVersion = '3.19.8'
+}
+
+String dbUser = "root"
+String dbPassword = "1234"
+
+jooq {
+    version = "${jooqVersion}"
+
+    configurations {
+        sakilaDb {
+            generationTool {
+                jdbc {
+                    driver = 'com.mysql.cj.jdbc.Driver'
+                    url = 'jdbc:mysql://localhost:3306'
+                    user = dbUser
+                    password = dbPassword
+                }
+
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    database {
+                        name = 'org.jooq.meta.mysql.MySQLDatabase'
+                        unsignedTypes = true
+                        inputSchema = 'sakila'
+
+                        forcedTypes {
+                            forcedType {
+                                userType = 'java.lang.Long'
+                                includeTypes = 'int unsigned'
+                            }
+
+                            forcedType {
+                                userType = 'java.lang.Long'
+                                includeTypes = 'tinyint unsigned'
+                            }
+
+                            forcedType {
+                                userType = 'java.lang.Integer'
+                                includeTypes = 'smallint unsigned'
+                            }
+                        }
+
+                    }
+
+                    generate {
+                        daos = true
+                        records = true
+                        fluentSetters = true
+                        javaTimeTypes = true
+                        deprecated = false
+                    }
+
+                    target {
+                        directory = "${generated}"
+                        packageName = 'com.habin.sakila'
+                        encoding = 'UTF-8'
+                    }
+
+                    strategy.name = "com.habin.configuration.JPrefixGeneratorStrategy"
+                }
+
+            }
+        }
+    }
+}
+
+group = 'com.habin'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-jooq') {
+        exclude group: 'org.jooq:jooq'
+    }
+    implementation "org.jooq:jooq:${jooqVersion}"
+    jooqGenerator "org.jooq:jooq:${jooqVersion}"
+    jooqGenerator "org.jooq:jooq-meta:${jooqVersion}"
+//    jooqGenerator 'com.mysql:mysql-connector-j'
+    jooqGenerator project(":configuration")
+
+
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    implementation "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+
+    annotationProcessor (
+        'org.springframework.boot:spring-boot-configuration-processor',
+        'org.projectlombok:lombok',
+        "org.mapstruct:mapstruct-processor:${mapstructVersion}",
+        'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    )
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+    testImplementation 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+sourceSets {
+    main.java.srcDirs += [generated]
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.annotationProcessorGeneratedSourcesDirectory(file(generated))
+}
+
+tasks.named('test') {
+    outputs.dir snippetsDir
+    useJUnitPlatform()
+}
+
+tasks.named('asciidoctor') {
+    inputs.dir snippetsDir
+    dependsOn test
+}
