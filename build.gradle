@@ -1,9 +1,10 @@
+import org.jooq.meta.jaxb.*
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
-    id 'org.asciidoctor.jvm.convert' version '3.3.2'
-    id "nu.studer.jooq" version '9.0'
+    id 'dev.monosoul.jooq-docker' version '6.0.14'
 }
 
 
@@ -14,66 +15,59 @@ ext {
     jooqVersion = '3.19.8'
 }
 
-String dbUser = "root"
-String dbPassword = "1234"
-
 jooq {
     version = "${jooqVersion}"
+    withContainer {
+        image {
+            name = "mysql:latest"
+            envVars = [
+                    MYSQL_ROOT_PASSWORD: "1234",
+                    MYSQL_DATABASE     : "sakila"
+            ]
+        }
 
-    configurations {
-        sakilaDb {
-            generationTool {
-                jdbc {
-                    driver = 'com.mysql.cj.jdbc.Driver'
-                    url = 'jdbc:mysql://localhost:3306'
-                    user = dbUser
-                    password = dbPassword
-                }
-
-                generator {
-                    name = 'org.jooq.codegen.DefaultGenerator'
-                    database {
-                        name = 'org.jooq.meta.mysql.MySQLDatabase'
-                        unsignedTypes = true
-                        inputSchema = 'sakila'
-
-                        forcedTypes {
-                            forcedType {
-                                userType = 'java.lang.Long'
-                                includeTypes = 'int unsigned'
-                            }
-
-                            forcedType {
-                                userType = 'java.lang.Long'
-                                includeTypes = 'tinyint unsigned'
-                            }
-
-                            forcedType {
-                                userType = 'java.lang.Integer'
-                                includeTypes = 'smallint unsigned'
-                            }
-                        }
-
-                    }
-
-                    generate {
-                        daos = true
-                        records = true
-                        fluentSetters = true
-                        javaTimeTypes = true
-                        deprecated = false
-                    }
-
-                    target {
-                        directory = "${generated}"
-                        packageName = 'com.habin.sakila'
-                        encoding = 'UTF-8'
-                    }
-
-                    strategy.name = "com.habin.configuration.JPrefixGeneratorStrategy"
-                }
-
+        db {
+            username = "root"
+            password = "1234"
+            name = "sakila"
+            port = 3306
+            jdbc {
+                schema = "jdbc:mysql"
+                driverClassName = "com.mysql.cj.jdbc.Driver"
             }
+        }
+    }
+}
+
+tasks {
+    generateJooqClasses {
+        schemas.set(["sakila"])
+        outputDirectory.set(project.layout.projectDirectory.dir("src/generated"))
+        includeFlywayTable.set(false)
+
+        usingJavaConfig {
+            generate = new Generate()
+                    .withJavaTimeTypes(true)
+                    .withDeprecated(false)
+                    .withDaos(true)
+                    .withFluentSetters(true)
+                    .withRecords(true)
+
+            withStrategy(
+                    new Strategy().withName("com.habin.configuration.JPrefixGeneratorStrategy")
+            )
+
+            database.withForcedTypes(
+                    new ForcedType()
+                            .withUserType("java.lang.Long")
+                            .withTypes("int unsigned"),
+                    new ForcedType()
+                            .withUserType("java.lang.Integer")
+                            .withTypes("tinyint unsigned"),
+                    new ForcedType()
+                            .withUserType("java.lang.Integer")
+                            .withTypes("smallint unsigned")
+            )
         }
     }
 }
@@ -103,11 +97,14 @@ dependencies {
         exclude group: 'org.jooq:jooq'
     }
     implementation "org.jooq:jooq:${jooqVersion}"
-    jooqGenerator "org.jooq:jooq:${jooqVersion}"
-    jooqGenerator "org.jooq:jooq-meta:${jooqVersion}"
-//    jooqGenerator 'com.mysql:mysql-connector-j'
-    jooqGenerator project(":configuration")
 
+    jooqCodegen project(":configuration")
+    jooqCodegen "org.jooq:jooq:${jooqVersion}"
+    jooqCodegen "org.jooq:jooq-meta:${jooqVersion}"
+    jooqCodegen "org.jooq:jooq-codegen:${jooqVersion}"
+
+    jooqCodegen 'org.flywaydb:flyway-core:10.8.1'
+    jooqCodegen 'org.flywaydb:flyway-mysql:10.8.1'
 
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -136,17 +133,7 @@ sourceSets {
     main.java.srcDirs += [generated]
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-    options.annotationProcessorGeneratedSourcesDirectory(file(generated))
-}
-
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
-}
-
-tasks.named('asciidoctor') {
-    inputs.dir snippetsDir
-    dependsOn test
 }

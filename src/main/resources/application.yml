@@ -3,9 +3,11 @@ spring:
     name: sakila_app
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/sakila
+    url: jdbc:mysql://localhost:3307/sakila
     username: root
     password: 1234
+  jooq:
+    sql-dialect: MySQL
 
 logging:
   level:

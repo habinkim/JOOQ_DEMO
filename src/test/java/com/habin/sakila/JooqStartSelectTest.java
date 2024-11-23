@@ -2,10 +2,10 @@ package com.habin.sakila;
 
 import com.habin.sakila.film.FilmRepository;
 import com.habin.sakila.film.FilmService;
-import com.habin.sakila.tables.pojos.Film;
 import com.habin.sakila.web.FilmWithActorPagedResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
+import org.jooq.generated.tables.pojos.Film;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

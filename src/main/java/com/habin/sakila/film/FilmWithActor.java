@@ -1,8 +1,9 @@
 package com.habin.sakila.film;
 
-import com.habin.sakila.tables.pojos.Actor;
-import com.habin.sakila.tables.pojos.Film;
-import com.habin.sakila.tables.pojos.FilmActor;
+
+import org.jooq.generated.tables.pojos.Actor;
+import org.jooq.generated.tables.pojos.Film;
+import org.jooq.generated.tables.pojos.FilmActor;
 
 public record FilmWithActor(
         Film film,

@@ -1,7 +1,7 @@
 package com.habin.sakila.web;
 
 import com.habin.sakila.film.FilmWithActor;
-import com.habin.sakila.tables.pojos.Actor;
+import org.jooq.generated.tables.pojos.Actor;
 import org.mapstruct.*;
 
 import java.util.List;
