@@ -1,12 +1,14 @@
 package com.habin.sakila.actor;
 
 import org.jooq.DSLContext;
+import org.jooq.Row2;
 import org.jooq.generated.tables.JActor;
 import org.jooq.generated.tables.JFilm;
 import org.jooq.generated.tables.JFilmActor;
 import org.jooq.generated.tables.daos.ActorDao;
 import org.jooq.generated.tables.pojos.Actor;
 import org.jooq.generated.tables.pojos.Film;
+import org.jooq.generated.tables.records.ActorRecord;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
@@ -21,9 +23,9 @@ public class ActorRepository {
 
     private final DSLContext dslContext;
     private final ActorDao actorDao;
-    private final JActor ACTOR = JActor.ACTOR;
-    private final JFilmActor FILM_ACTOR = JFilmActor.FILM_ACTOR;
-    private final JFilm FILM = JFilm.FILM;
+    public static final JActor ACTOR = JActor.ACTOR;
+    public static final JFilmActor FILM_ACTOR = JFilmActor.FILM_ACTOR;
+    public static final JFilm FILM = JFilm.FILM;
 
     public ActorRepository(DSLContext dslContext) {
         this.dslContext = dslContext;
@@ -74,5 +76,53 @@ public class ActorRepository {
         return actorsMap.entrySet().stream()
                 .map(entry -> new ActorFilmography(entry.getKey(), entry.getValue()))
                 .toList();
+    }
+
+    public Actor saveByDao(Actor actor) {
+        // 이떄 PK (actorId)가 actor 객체에 추가됨
+        actorDao.insert(actor);
+        return actor;
+    }
+
+    public ActorRecord saveByRecord(Actor actor) {
+        ActorRecord actorRecord = dslContext.newRecord(ACTOR, actor);
+        actorRecord.insert();
+
+        // 단 이 방식은 immutable pojo 에서 사용하기 어려울 수 있음
+        return actorRecord;
+    }
+
+    public Actor saveWithReturning(Actor actor) {
+        return dslContext.insertInto(ACTOR,
+                        ACTOR.FIRST_NAME,
+                        ACTOR.LAST_NAME
+                )
+                .values(
+                        actor.getFirstName(),
+                        actor.getLastName()
+                )
+                .returning(ACTOR.fields())
+                .fetchOneInto(Actor.class);
+    }
+
+    public Long saveWithReturningPkOnly(Actor actor) {
+        return dslContext.insertInto(ACTOR,
+                        ACTOR.FIRST_NAME,
+                        ACTOR.LAST_NAME
+                )
+                .values(
+                        actor.getFirstName(),
+                        actor.getLastName()
+                )
+                .returning(ACTOR.ACTOR_ID)
+                .fetchOneInto(Long.class);
+    }
+
+    public void bulkInsertWithRows(List<Actor> actors) {
+        List<Row2<String, String>> rows = actors.stream().map(actor -> DSL.row(actor.getFirstName(), actor.getLastName())).toList();
+
+        dslContext.insertInto(ACTOR, ACTOR.FIRST_NAME, ACTOR.LAST_NAME)
+                .valuesOfRows(rows)
+                .execute();
     }
 }
