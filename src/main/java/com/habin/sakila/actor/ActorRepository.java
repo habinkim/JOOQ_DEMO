@@ -178,9 +178,13 @@ public class ActorRepository {
                 .execute();
     }
 
-    public int deleteWithActiveRecord(Long actorId) {
+    public int deleteWithRecord(Long actorId) {
         ActorRecord actorRecord = dslContext.newRecord(ACTOR);
         actorRecord.setActorId(actorId);
         return actorRecord.delete();
+    }
+
+    public ActorRecord findRecordByActorId(Long actorId) {
+        return dslContext.fetchOne(ACTOR, ACTOR.ACTOR_ID.eq(actorId));
     }
 }

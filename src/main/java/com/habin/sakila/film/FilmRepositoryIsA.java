@@ -1,13 +1,11 @@
 package com.habin.sakila.film;
 
-import lombok.RequiredArgsConstructor;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.JActor;
 import org.jooq.generated.tables.JFilm;
 import org.jooq.generated.tables.JFilmActor;
 import org.jooq.generated.tables.daos.FilmDao;
-import org.jooq.generated.tables.pojos.Film;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 

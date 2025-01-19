@@ -113,7 +113,7 @@ public class JooqUpdateTest {
         Long newActorId = actorRepository.saveWithReturningPkOnly(newActor);
 
         // when
-        int delete = actorRepository.deleteWithActiveRecord(newActorId);
+        int delete = actorRepository.deleteWithRecord(newActorId);
 
         // then
         assertThat(delete).isEqualTo(1);
