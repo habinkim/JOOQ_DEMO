@@ -1,6 +1,7 @@
 package com.habin.sakila.actor;
 
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Row2;
 import org.jooq.generated.tables.JActor;
 import org.jooq.generated.tables.JFilm;
@@ -11,12 +12,15 @@ import org.jooq.generated.tables.pojos.Film;
 import org.jooq.generated.tables.records.ActorRecord;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
 
 import static com.habin.sakila.util.JooqConditionUtils.containsIfNotBlank;
 import static com.habin.sakila.util.JooqConditionUtils.inIfNotEmpty;
+import static org.jooq.impl.DSL.noField;
+import static org.jooq.impl.DSL.val;
 
 @Repository
 public class ActorRepository {
@@ -114,7 +118,7 @@ public class ActorRepository {
                         actor.getFirstName(),
                         actor.getLastName()
                 )
-                .returning(ACTOR.ACTOR_ID)
+                .returningResult(ACTOR.ACTOR_ID)
                 .fetchOneInto(Long.class);
     }
 
@@ -124,5 +128,59 @@ public class ActorRepository {
         dslContext.insertInto(ACTOR, ACTOR.FIRST_NAME, ACTOR.LAST_NAME)
                 .valuesOfRows(rows)
                 .execute();
+    }
+
+    public void update(Actor actor) {
+        actorDao.update(actor);
+    }
+
+    public Actor findByActorId(Long actorId) {
+        return actorDao.findById(actorId);
+    }
+
+    public int updateWithDto(Long actorId, ActorUpdateRequest request) {
+        Field<String> firstName = StringUtils.hasText(request.getFirstName()) ? val(request.getFirstName()) : noField(ACTOR.FIRST_NAME);
+        Field<String> lastName = StringUtils.hasText(request.getLastName()) ? val(request.getLastName()) : noField(ACTOR.LAST_NAME);
+
+        return dslContext.update(ACTOR)
+                .set(ACTOR.FIRST_NAME, firstName)
+                .set(ACTOR.LAST_NAME, lastName)
+                .where(ACTOR.ACTOR_ID.eq(actorId))
+                .execute();
+    }
+
+    public int updateWithRecord(Long actorId, ActorUpdateRequest request) {
+        ActorRecord actorRecord = dslContext.fetchOne(ACTOR, ACTOR.ACTOR_ID.eq(actorId));
+        if (actorRecord == null) {
+            return 0;
+        }
+
+        if (StringUtils.hasText(request.getFirstName())) {
+            actorRecord.setFirstName(request.getFirstName());
+        }
+        if (StringUtils.hasText(request.getLastName())) {
+            actorRecord.setLastName(request.getLastName());
+        }
+
+        return dslContext.update(ACTOR)
+                .set(actorRecord)
+                .where(ACTOR.ACTOR_ID.eq(actorId))
+                .execute();
+
+        // or
+        // actorRecord.setActorId(actorId);
+        // return actorRecord.update();
+    }
+
+    public int delete(Long actorId) {
+        return dslContext.deleteFrom(ACTOR)
+                .where(ACTOR.ACTOR_ID.eq(actorId))
+                .execute();
+    }
+
+    public int deleteWithActiveRecord(Long actorId) {
+        ActorRecord actorRecord = dslContext.newRecord(ACTOR);
+        actorRecord.setActorId(actorId);
+        return actorRecord.delete();
     }
 }
