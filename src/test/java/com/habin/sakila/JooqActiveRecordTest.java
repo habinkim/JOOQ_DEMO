@@ -101,10 +101,10 @@ public class JooqActiveRecordTest {
         actorRecord.store();
 
         // when
-        actorRecord.delete();
+        int result = actorRecord.delete();
 
         // then
-        assertThat(actorRecord).hasNoNullFieldsOrProperties();
+        assertThat(result).isEqualTo(1);
     }
 
 }
