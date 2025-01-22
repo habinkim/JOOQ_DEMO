@@ -49,5 +49,32 @@ public class FilmRepository {
                 .fetchInto(FilmWithActor.class);
     }
 
+    public List<FilmWithActor> findFilmWithActorListImplicitPathJoin(Long page, Long pageSize) {
+        return dslContext.select(
+                        DSL.row(FILM.fields()),
+                        DSL.row(FILM_ACTOR.fields()),
+                        DSL.row(FILM_ACTOR.actor().fields())
+                )
+                .from(FILM)
+                .join(FILM_ACTOR).on(FILM.FILM_ID.eq(FILM_ACTOR.FILM_ID))
+                .offset((page - 1) * pageSize)
+                .limit(pageSize)
+                .fetchInto(FilmWithActor.class);
+    }
+
+    public List<FilmWithActor> findFilmWithActorListExplicitPathJoin(Long page, Long pageSize) {
+        return dslContext.select(
+                        DSL.row(FILM.fields()),
+                        DSL.row(FILM.filmActor().fields()),
+                        DSL.row(FILM.filmActor().actor().fields())
+                )
+                .from(FILM)
+                .join(FILM.filmActor())
+                .join(FILM.filmActor().actor())
+                .offset((page - 1) * pageSize)
+                .limit(pageSize)
+                .fetchInto(FilmWithActor.class);
+    }
+
 
 }
